@@ -10,7 +10,7 @@ class Event
 
     public function __construct(SQLite $db)
     {
-        $this->db = $db;
+        $this->db = $db; // Устанавливаем соединение с базой данных
     }
 
     public function select(): array
@@ -21,5 +21,22 @@ class Event
             ['receiverId' => '2', 'text' => 'Hello, User 2!', 'minute' => date("i"), 'hour' => date("H"), 'day' => date("d"), 'month' => date("m"), 'weekDay' => date("w")],
             // другие события
         ];
+    }
+
+    public function save(array $data): bool
+    {
+        // SQL запрос для вставки данных
+        $sql = "INSERT INTO event (receiver_id, text, minute, hour, day, month, day_of_week) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        // Выполнение SQL-запроса с помощью вашего класса SQLite
+        return $this->db->execute($sql, [
+            $data['receiver_id'],
+            $data['text'],
+            $data['minute'],
+            $data['hour'],
+            $data['day'],
+            $data['month'],
+            $data['day_of_week']
+        ]);
     }
 }
