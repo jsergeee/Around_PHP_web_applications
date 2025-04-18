@@ -15,26 +15,37 @@ echo "Application loaded successfully.\n";
 
 // Проверяем, переданы ли аргументы командной строки
 if ($argc > 1) {
-    $command = $argv[1];
-    echo "Command: $command\n";
+    $options = getopt('c:', ['name:', 'receiver:', 'text:', 'cron:', 'help']); // Получаем массив параметров
+    echo "Command: " . ($options['c'] ?? 'none') . "\n"; // Вывод команды для отладки
 
     // Обработка команды save_event
-    if ($command === 'save_event' && $argc === 6) {
-        $name = $argv[2]; // Получаем имя
-        $receiver = (int)$argv[3]; // Получаем получателя и преобразуем в целое число
-        $text = $argv[4]; // Получаем текст
-        $cron = $argv[5]; // Получаем cron
+    if (
+        isset($options['c']) && $options['c'] === 'save_event' &&
+        isset($options['name']) && isset($options['receiver']) &&
+        isset($options['text']) && isset($options['cron'])
+    ) {
+        echo "Обработка команды save_event\n"; // Логируем начало обработки команды
+        $name = $options['name']; // Получаем имя
+        $receiver = (int)$options['receiver']; // Получаем получателя и преобразуем в целое число
+        $text = $options['text']; // Получаем текст
+        $cron = $options['cron']; // Получаем cron
 
         echo "Переданные параметры: name=$name, receiver=$receiver, text=$text, cron=$cron\n";
 
         // Создаем экземпляр базы данных
         $db = new \App\Database\SQLite($app); // Обратите внимание на пространство имен
-        $result = $db->saveEvent($name, $receiver, $text, $cron); // Вызываем метод saveEvent
 
-        if ($result) {
-            echo "Событие успешно сохранено.\n";
+        // Проверка существования события
+        if ($db->eventExists($name, $receiver, $text, $cron)) {
+            echo "Событие уже существует. Пропускаем сохранение.\n";
         } else {
-            echo "Ошибка при сохранении события.\n";
+            $result = $db->saveEvent($name, $receiver, $text, $cron); // Вызываем метод saveEvent
+
+            if ($result) {
+                echo "Событие успешно сохранено.\n";
+            } else {
+                echo "Ошибка при сохранении события.\n";
+            }
         }
     } else {
         echo "Неверное количество аргументов для команды save_event.\n";

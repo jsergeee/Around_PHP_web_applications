@@ -19,7 +19,7 @@ class HandleEventsCommand extends Command
     public function run(array $options = []): void
     {
         echo "HandleEventsCommand выполняется...\n";
-
+        echo "Запуск приложения...\n"; // Отладочное сообщение
         $eventModel = new Event(new SQLite($this->app));
         $events = $eventModel->select();
         echo "Получено событий: " . count($events) . "\n";

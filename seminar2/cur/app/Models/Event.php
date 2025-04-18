@@ -25,13 +25,23 @@ class Event
 
     public function save(array $data): bool
     {
-        // SQL запрос для вставки данных
-        $sql = "INSERT INTO event (receiver_id, text, minute, hour, day, month, day_of_week) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        // Проверяем, существует ли событие
+        if ($this->db->eventExists($data['name'], $data['receiver_id'], $data['text'], $data['cron'])) {
+            echo "Событие уже существует. Пропускаем сохранение.\n";
+            return false; // Или выбросьте исключение, если нужно
+        }
 
-        // Выполнение SQL-запроса с помощью вашего класса SQLite
+        echo "Вызов метода save в классе Event\n"; // Логируем вызов метода save
+        $sql = "INSERT INTO event (name, receiver_id, text, cron, minute, hour, day, month, day_of_week) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        // Добавь доп. вывод массива data
+        // var_dump($data);
+
         return $this->db->execute($sql, [
+            $data['name'],
             $data['receiver_id'],
             $data['text'],
+            $data['cron'],                  // Присваиваем cron
             $data['minute'],
             $data['hour'],
             $data['day'],
