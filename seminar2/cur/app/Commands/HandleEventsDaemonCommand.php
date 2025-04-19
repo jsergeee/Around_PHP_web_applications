@@ -5,12 +5,13 @@ declare(ticks=1);
 namespace App\Commands;
 
 use App\Application;
+use App\Database\SQLite;
 
 class HandleEventsDaemonCommand extends Command
 {
     protected Application $app;
 
-    const CACHE_PATH = __DIR__ . '/../../cache.txt';
+    const CACHE_PATH = DIR . '/../../cache.txt';
 
     public function __construct(Application $app)
     {
@@ -58,28 +59,42 @@ class HandleEventsDaemonCommand extends Command
 
     private function daemonRun(array $options)
     {
-        $lastData = $this->getLastData();
         $handleEventsCommand = new HandleEventsCommand($this->app);
+        $events = $this->getScheduledEvents(); // Получаем все запланированные события
 
         while (true) {
             $currentTime = $this->getCurrentTime();
             echo "Текущее время: " . json_encode($currentTime) . "\n";
-            echo "Последние данные: " . json_encode($lastData) . "\n";
 
-            // Приводим оба массива к строковому типу
-            if ($lastData === array_map('strval', $currentTime)) {
-                sleep(10);
-                continue;
+            foreach ($events as $event) {
+                if ($this->shouldRunEvent($event['cron'], $currentTime)) {
+                    echo "Время для события '{$event['name']}', выполняем HandleEventsCommand...\n";
+                    $handleEventsCommand->run($options);
+                }
             }
 
-            echo "Время изменилось, выполняем HandleEventsCommand...\n";
-            $handleEventsCommand->run($options);
-            $lastData = $currentTime;
-
-            sleep(10);
+            sleep(60); // Проверяем каждую минуту
         }
     }
 
+    private function shouldRunEvent(string $cron, array $currentTime): bool
+    {
+        $cronValues = explode(" ", $cron);
+        return (
+            ($cronValues[0] === '*' || (int)$cronValues[0] === (int)$currentTime[0]) &&
+            ($cronValues[1] === '*' || (int)$cronValues[1] === (int)$currentTime[1]) &&
+            ($cronValues[2] === '*' || (int)$cronValues[2] === (int)$currentTime[2]) &&
+            ($cronValues[3] === '*' || (int)$cronValues[3] === (int)$currentTime[3]) &&
+            ($cronValues[4] === '*' || (int)$cronValues[4] === (int)$currentTime[4])
+        );
+    }
+
+    private function getScheduledEvents(): array
+    {
+        // Здесь нужно реализовать логику получения запланированных событий из базы данных
+        $databaseConnection = new SQLite($this->app);
+        return $databaseConnection->getAllEvents(); // Предполагается, что есть метод для получения всех событий
+    }
 
     private function getCurrentTime(): array
     {
@@ -91,21 +106,4 @@ class HandleEventsDaemonCommand extends Command
             date("w")
         ];
     }
-
-    private function getLastData(): array
-    {
-        if (!file_exists(self::CACHE_PATH)) {
-            return [];
-        }
-
-        $lastData = file_get_contents(self::CACHE_PATH);
-        if ($lastData === false) {
-            echo "Ошибка при чтении кэш-файла.\n";
-            return [];
-        }
-
-        return json_decode($lastData, true) ?? [];
-    }
-
-
 }

@@ -18,7 +18,7 @@ class TelegramApiImpl implements TelegramApi {
 
     public function getMessage(int $offset): array
     {
-        $url = self::ENDPOINT . $this->token . '/getUpdates?timeout+1';
+        $url = self::ENDPOINT . $this->token . '/getUpdates?timeout=1';
         $result = [];
         $_result = []; // Инициализация массива для хранения результатов
 
@@ -29,6 +29,8 @@ class TelegramApiImpl implements TelegramApi {
             curl_setopt($sh, CURLOPT_RETURNTRANSFER, true);
 
             $response = json_decode(curl_exec($sh), true); // Добавлен второй параметр true для ассоциативного массива
+
+            echo "Ответ от Telegram: " . json_encode($response) . "\n"; // Выводим ответ для отладки
 
             if (!$response['ok'] || empty($response['result'])) break; // Исправлено условие
 
@@ -42,29 +44,50 @@ class TelegramApiImpl implements TelegramApi {
         }
 
         return [
-            'offset' => $offset,
             'result' => $_result,
+            'offset' => $offset,
+            
         ];
     }
 
     public function sendMessage(string $chatId, string $text): void
     {
+        echo "Попытка отправить сообщение в чат ID: $chatId с текстом: $text\n"; // Отладочное сообщение
         $url = self::ENDPOINT . $this->token . '/sendMessage';
-
+    
         $data = [
             'chat_id' => $chatId,
             'text' => $text,
         ];
-
+    
         $ch = curl_init($url);
         $jsonData = json_encode($data);
-
+    
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-        curl_exec($ch);
+    
+        // Выполняем запрос
+        $response = curl_exec($ch);
+    
+        // Проверка на ошибки cURL
+        if (curl_errno($ch)) {
+            echo 'Ошибка cURL: ' . curl_error($ch) . "\n";
+        } else {
+            // Декодируем ответ
+            $responseData = json_decode($response, true);
+    
+            // Проверяем статус ответа от Telegram
+            if (isset($responseData['ok']) && $responseData['ok']) {
+                echo "Сообщение успешно отправлено в чат ID: $chatId\n";
+            } else {
+                // Выводим ошибку, если сообщение не было отправлено
+                echo "Ошибка отправки сообщения: " . ($responseData['description'] ?? 'Неизвестная ошибка') . "\n";
+            }
+        }
+    
         curl_close($ch);
     }
+    
 }
