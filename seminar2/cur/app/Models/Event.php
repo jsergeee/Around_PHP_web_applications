@@ -15,12 +15,14 @@ class Event
 
     public function select(): array
     {
-        // Пример данных, которые могут быть получены из базы данных
-        return [
-            ['receiverId' => '1', 'text' => 'Hello, User 1!', 'minute' => date("i"), 'hour' => date("H"), 'day' => date("d"), 'month' => date("m"), 'weekDay' => date("w")],
-            ['receiverId' => '2', 'text' => 'Hello, User 2!', 'minute' => date("i"), 'hour' => date("H"), 'day' => date("d"), 'month' => date("m"), 'weekDay' => date("w")],
-            // другие события
-        ];
+        // SQL-запрос для получения всех необходимых полей из таблицы event
+        $query = "SELECT receiver_id AS receiverId, text, minute, hour, day, month, day_of_week AS weekDay FROM event";
+
+        // Выполняем запрос и получаем результаты
+        $results = $this->db->query($query);
+
+        // Возвращаем результаты, предполагая, что $results - это массив ассоциативных массивов
+        return $results;
     }
 
     public function save(array $data): bool
@@ -34,14 +36,11 @@ class Event
         echo "Вызов метода save в классе Event\n"; // Логируем вызов метода save
         $sql = "INSERT INTO event (name, receiver_id, text, cron, minute, hour, day, month, day_of_week) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        // Добавь доп. вывод массива data
-        // var_dump($data);
-
         return $this->db->execute($sql, [
             $data['name'],
             $data['receiver_id'],
             $data['text'],
-            $data['cron'],                  // Присваиваем cron
+            $data['cron'],                  
             $data['minute'],
             $data['hour'],
             $data['day'],
